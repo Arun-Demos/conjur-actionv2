@@ -1,0 +1,64 @@
+name: 'CyberArk Conjur Secret Fetcher Action'
+description: 'Securely retrieve a secret from CyberArk Conjur Secrets Manager and present to your action as a masked environment variable'
+author: 'CyberArk'
+inputs: 
+  url:
+    description: 'The URL for CyberArk Conjur endpoint'
+    required: true
+  account:
+    description: 'The account name of your CyberArk Conjur instance'
+    required: true
+  host_id:
+    description: 'The Host ID to be used for authentication to CyberArk Conjur Secrets Manager e.g. host/github-action'
+    required: false
+  api_key:
+    description: 'The API Key associated with the given Host ID'
+    required: false
+  authn_token_file:
+    description: 'The file path for the Conjur auth token'
+    required: false
+  authn_id:
+    description: 'The Service ID of JWT Authenticator'
+    required: false
+  secrets:
+    description: 'A semi-colon delimited list of secrets to retrieve. See README for more details.'
+    required: true
+  certificate:
+    description: 'The Self-Signed SSL Certificate for your CyberArk Conjur instance'
+runs:
+  using: "composite" #Relevant runner name
+  steps:
+    - name: Ensure jq/curl exist
+      shell: bash
+      run: |
+        set -euo pipefail
+        need_install=0
+        command -v jq >/dev/null 2>&1 || need_install=1
+        command -v curl >/dev/null 2>&1 || need_install=1
+        if [ "$need_install" -eq 1 ]; then
+          if command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get update -y && sudo apt-get install -y jq curl
+          elif command -v yum >/dev/null 2>&1; then
+            sudo yum install -y jq curl
+          elif command -v dnf >/dev/null 2>&1; then
+            sudo dnf install -y jq curl
+          else
+            echo "::warning::Could not auto-install jq/curl; please ensure they exist on the runner."
+          fi
+        fi
+
+    - name: Fetch Conjur secrets
+      shell: bash
+      env:
+        INPUT_URL:              ${{ inputs.url }}
+        INPUT_ACCOUNT:          ${{ inputs.account }}
+        INPUT_HOST_ID:          ${{ inputs.host_id }}
+        INPUT_API_KEY:          ${{ inputs.api_key }}
+        INPUT_AUTHN_TOKEN_FILE: ${{ inputs.authn_token_file }}
+        INPUT_AUTHN_ID:         ${{ inputs.authn_id }}
+        INPUT_SECRETS:          ${{ inputs.secrets }}
+        INPUT_CERTIFICATE:      ${{ inputs.certificate }}
+      run: |
+        set -euo pipefail
+        chmod +x "${GITHUB_ACTION_PATH}/entrypoint.sh"
+        "${GITHUB_ACTION_PATH}/entrypoint.sh"
