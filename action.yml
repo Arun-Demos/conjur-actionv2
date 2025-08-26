@@ -60,5 +60,5 @@ runs:
         INPUT_CERTIFICATE:      ${{ inputs.certificate }}
       run: |
         set -euo pipefail
-        chmod +x "https://raw.githubusercontent.com/Arun-Demos/conjur-actionv2/refs/heads/main/entrypoint.sh"
-        "https://raw.githubusercontent.com/Arun-Demos/conjur-actionv2/refs/heads/main/entrypoint.sh"
+        chmod +x "${GITHUB_ACTION_PATH}/entrypoint.sh"
+        "${GITHUB_ACTION_PATH}/entrypoint.sh"
