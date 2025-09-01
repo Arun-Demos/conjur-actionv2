@@ -19,16 +19,17 @@ It does not run aws-actions/configure-aws-credentials — developers can choose 
 | `assumed_role_user_arn` | ARN of the assumed role (from the JSON, if present). |
 
 ## 🛠️ Example: Fetch + Parse + Configure
-permissions:
-  id-token: write
-  contents: read
 
-jobs:
-  s3-list:
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v4
+     permissions:
+       id-token: write
+        contents: read
 
+    jobs:
+      s3-list:
+        runs-on: self-hosted
+        steps:
+        - uses: actions/checkout@v4
+      
       # Step 1: Fetch JSON from Conjur
       - name: Fetch AWS creds JSON from Conjur
         uses: your-org/conjur-actions/fetch@v1
@@ -59,16 +60,17 @@ jobs:
 
       - run: aws s3 ls
 
-🛠️ Example: Direct JSON (no fetch step)
-- name: Parse JSON to AWS env
-  uses: your-org/conjur-actions/aws-from-conjur-json@v1
-  with:
-    json: ${{ secrets.CONJUR_AWS_JSON }}
-    region: us-east-1
+## 🛠️ Example: Direct JSON (no fetch step)
 
-- run: aws s3 ls
+    - name: Parse JSON to AWS env
+      uses: your-org/conjur-actions/aws-from-conjur-json@v1
+      with:
+        json: ${{ secrets.CONJUR_AWS_JSON }}
+        region: us-east-1
 
-🔐 Security
+    - run: aws s3 ls
+
+## 🔐 Security
 
 All secrets (access_key_id, secret_access_key, session_token) are masked in logs.
 
