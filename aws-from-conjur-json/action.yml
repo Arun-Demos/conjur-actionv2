@@ -1,0 +1,133 @@
+name: "Conjur → AWS env (parser only)"
+description: "Parse Conjur AWS JSON (.data.*) into AWS_* env vars; no AWS configure step."
+author: "Arun Kumar"
+branding:
+  icon: "lock"
+  color: "blue"
+
+inputs:
+  json:
+    description: |
+      Conjur AWS JSON blob as a string. If omitted, the action reads from the
+      environment variable named by `json_env_name` (default: CONJUR_AWS_JSON).
+      Expected shape:
+        { "ttl": 900, "data": {
+            "access_key_id": "...",
+            "secret_access_key": "...",
+            "session_token": "..."
+          } }
+    required: false
+    default: ""
+  json_env_name:
+    description: "Environment variable name that holds the JSON (when `json` input is empty)."
+    required: false
+    default: "CONJUR_AWS_JSON"
+  region:
+    description: "AWS region to export as AWS_DEFAULT_REGION (optional)."
+    required: false
+    default: ""
+  mask_full_json:
+    description: "If 'true', mask the full JSON string in logs."
+    required: false
+    default: "true"
+
+outputs:
+  access_key_id:
+    description: "Parsed AWS Access Key ID (do not print this)."
+    value: ${{ steps.parse.outputs.akid }}
+  assumed_role_user_arn:
+    description: "Parsed assumed role ARN, if present in JSON (.data.assumed_role_user_arn)."
+    value: ${{ steps.parse.outputs.assumed_arn }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Ensure jq exists
+      shell: bash
+      run: |
+        set -euo pipefail
+        if ! command -v jq >/dev/null 2>&1; then
+          if command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get update -y && sudo apt-get install -y jq
+          elif command -v yum >/dev/null 2>&1; then
+            sudo yum install -y jq
+          elif command -v dnf >/dev/null 2>&1; then
+            sudo dnf install -y jq
+          else
+            echo "::warning::jq not found and could not be auto-installed; please ensure jq is present."
+          fi
+        fi
+
+    - name: Parse Conjur JSON -> AWS_* env
+      id: parse
+      shell: bash
+      env:
+        IN_JSON: ${{ inputs.json }}
+        IN_JSON_ENV_NAME: ${{ inputs.json_env_name }}
+        IN_REGION: ${{ inputs.region }}
+        IN_MASK: ${{ inputs.mask_full_json }}
+      run: |
+        set -euo pipefail
+
+        # 1) Load JSON from input or environment
+        JSON="${IN_JSON}"
+        if [ -z "$JSON" ]; then
+          # shellcheck disable=SC2086
+          JSON="${!IN_JSON_ENV_NAME:-}"
+        fi
+        if [ -z "$JSON" ]; then
+          echo "::error::No JSON provided. Pass 'json:' input or set $IN_JSON_ENV_NAME in the environment."
+          exit 1
+        fi
+
+        # 2) Optionally mask the full JSON string (can be large)
+        if [ "$IN_MASK" = "true" ]; then
+          echo "::add-mask::$JSON"
+        fi
+
+        # 3) Extract credentials from the expected shape: top-level .data.*
+        akid=$(echo "$JSON" | jq -r '.data.access_key_id // empty')
+        skey=$(echo "$JSON" | jq -r '.data.secret_access_key // empty')
+        stkn=$(echo "$JSON" | jq -r '.data.session_token    // empty')
+        aarn=$(echo "$JSON" | jq -r '.data.assumed_role_user_arn // empty')
+
+        # Fallbacks: support flat shape {access_key_id,...} if someone pipes a different source
+        if [ -z "$akid" ] || [ -z "$skey" ]; then
+          akid=${akid:-$(echo "$JSON" | jq -r '.access_key_id      // empty')}
+          skey=${skey:-$(echo "$JSON" | jq -r '.secret_access_key // empty')}
+          stkn=${stkn:-$(echo "$JSON" | jq -r '.session_token     // empty')}
+          aarn=${aarn:-$(echo "$JSON" | jq -r '.assumed_role_user_arn // empty')}
+        fi
+
+        # 4) Validate presence
+        if [ -z "$akid" ]; then
+          echo "::error::Missing 'access_key_id' in the JSON (.data.access_key_id)."
+          exit 1
+        fi
+        if [ -z "$skey" ]; then
+          echo "::error::Missing 'secret_access_key' in the JSON (.data.secret_access_key)."
+          exit 1
+        fi
+
+        # 5) Mask sensitive values explicitly
+        echo "::add-mask::$akid"
+        echo "::add-mask::$skey"
+        if [ -n "$stkn" ]; then echo "::add-mask::$stkn"; fi
+
+        # 6) Export to job environment for subsequent steps
+        {
+          echo "AWS_ACCESS_KEY_ID=$akid"
+          echo "AWS_SECRET_ACCESS_KEY=$skey"
+        } >> "$GITHUB_ENV"
+        if [ -n "$stkn" ]; then
+          echo "AWS_SESSION_TOKEN=$stkn" >> "$GITHUB_ENV"
+        fi
+
+        # 7) Region (optional)
+        if [ -n "$IN_REGION" ]; then
+          echo "AWS_DEFAULT_REGION=$IN_REGION" >> "$GITHUB_ENV"
+        fi
+
+        # 8) Useful outputs (non-secret)
+        echo "akid=$akid"             >> "$GITHUB_OUTPUT"
+        echo "assumed_arn=$aarn"      >> "$GITHUB_OUTPUT"
