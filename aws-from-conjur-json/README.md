@@ -13,9 +13,11 @@ It does not run aws-actions/configure-aws-credentials — developers can choose 
 | `mask_full_json` | No       | `"true"`          | Whether to mask the entire JSON string in logs.                                                                                              |
 
 📤 Outputs
-Name	Description
-access_key_id	Parsed AWS access key ID (masked in logs).
-assumed_role_user_arn	ARN of the assumed role (from the JSON, if present).
+| Name                    | Description                                          |
+| ----------------------- | ---------------------------------------------------- |
+| `access_key_id`         | Parsed AWS access key ID (masked in logs).           |
+| `assumed_role_user_arn` | ARN of the assumed role (from the JSON, if present). |
+
 🛠️ Example: Fetch + Parse + Configure
 permissions:
   id-token: write
