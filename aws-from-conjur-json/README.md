@@ -1,10 +1,10 @@
-Conjur → AWS Env (Parser Only)
+#Conjur → AWS Env (Parser Only)
 
 This GitHub Action parses a Conjur dynamic secret JSON (with AWS credentials under .data.*) and exports them as standard AWS environment variables.
 
 It does not run aws-actions/configure-aws-credentials — developers can choose how to configure AWS (e.g. add proxy settings, assume role, custom session names, etc.).
 
-📦 Inputs
+##📦 Inputs
 | Name             | Required | Default           | Description                                                                                                                                  |
 | ---------------- | -------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | `json`           | No       | `""`              | JSON string containing the Conjur dynamic secret. If omitted, the action will read from the environment variable defined by `json_env_name`. |
@@ -12,13 +12,13 @@ It does not run aws-actions/configure-aws-credentials — developers can choose 
 | `region`         | No       | `""`              | AWS region to set as `AWS_DEFAULT_REGION`.                                                                                                   |
 | `mask_full_json` | No       | `"true"`          | Whether to mask the entire JSON string in logs.                                                                                              |
 
-📤 Outputs
+##📤 Outputs
 | Name                    | Description                                          |
 | ----------------------- | ---------------------------------------------------- |
 | `access_key_id`         | Parsed AWS access key ID (masked in logs).           |
 | `assumed_role_user_arn` | ARN of the assumed role (from the JSON, if present). |
 
-🛠️ Example: Fetch + Parse + Configure
+##🛠️ Example: Fetch + Parse + Configure
 permissions:
   id-token: write
   contents: read
