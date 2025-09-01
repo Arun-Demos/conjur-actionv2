@@ -5,11 +5,13 @@ This GitHub Action parses a Conjur dynamic secret JSON (with AWS credentials und
 It does not run aws-actions/configure-aws-credentials — developers can choose how to configure AWS (e.g. add proxy settings, assume role, custom session names, etc.).
 
 📦 Inputs
-Name	Required	Default	Description
-json	No	""	JSON string containing the Conjur dynamic secret. If omitted, the action will read from the environment variable defined by json_env_name.
-json_env_name	No	CONJUR_AWS_JSON	Name of the environment variable that holds the JSON. Useful when pairing with the Conjur fetch action.
-region	No	""	AWS region to set as AWS_DEFAULT_REGION.
-mask_full_json	No	"true"	Whether to mask the entire JSON string in logs.
+| Name             | Required | Default           | Description                                                                                                                                  |
+| ---------------- | -------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `json`           | No       | `""`              | JSON string containing the Conjur dynamic secret. If omitted, the action will read from the environment variable defined by `json_env_name`. |
+| `json_env_name`  | No       | `CONJUR_AWS_JSON` | Name of the environment variable that holds the JSON. Useful when pairing with the Conjur fetch action.                                      |
+| `region`         | No       | `""`              | AWS region to set as `AWS_DEFAULT_REGION`.                                                                                                   |
+| `mask_full_json` | No       | `"true"`          | Whether to mask the entire JSON string in logs.                                                                                              |
+
 📤 Outputs
 Name	Description
 access_key_id	Parsed AWS access key ID (masked in logs).
